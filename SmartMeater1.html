@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Energy Meter - Payment Portal</title>
+    <!-- Adding a font for a modern look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #64748b;
+            --success: #16a34a;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #1e293b;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+            padding: 20px;
+        }
+
+        .dashboard-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+
+        .header h2 {
+            margin: 0;
+            color: var(--primary);
+            font-size: 24px;
+        }
+
+        .header p {
+            color: var(--secondary);
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-box {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: left;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--secondary);
+            font-weight: 600;
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 18px;
+            font-weight: 700;
+            margin-top: 5px;
+            color: #0f172a;
+        }
+
+        /* Bill Section */
+        .bill-container {
+            background: #eff6ff;
+            border: 2px solid #dbeafe;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+
+        .bill-label {
+            font-size: 14px;
+            color: #1e40af;
+            margin-bottom: 5px;
+        }
+
+        .bill-amount {
+            font-size: 40px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        /* Payment Button */
+        .pay-btn {
+            width: 100%;
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3);
+        }
+
+        .pay-btn:hover {
+            background: #15803d;
+            transform: translateY(-2px);
+        }
+
+        .pay-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Status Indicator */
+        .refresh-tag {
+            font-size: 12px;
+            color: var(--secondary);
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .dot {
+            height: 8px;
+            width: 8px;
+            background-color: #22c55e;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.7; }
+            70% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="dashboard-card">
+        <div class="header">
+            <h2>Smart Meter Dashboard</h2>
+            <p>IoT Based Power Management System</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span class="stat-label">Voltage</span>
+                <span class="stat-value"><span id="voltage">0</span> V</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Current</span>
+                <span class="stat-value"><span id="current">0</span> A</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Power</span>
+                <span class="stat-value"><span id="power">0</span> W</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Energy</span>
+                <span class="stat-value"><span id="energy">0</span> kWh</span>
+            </div>
+        </div>
+
+        <div class="bill-container">
+            <div class="bill-label">Current Bill Amount</div>
+            <div class="bill-amount">₹<span id="bill">0.00</span></div>
+        </div>
+
+        <button class="pay-btn" onclick="processPayment()">PAY NOW (UPI)</button>
+
+        <div class="refresh-tag">
+            <span class="dot"></span> 
+            Live Updates: <span id="last-sync">Just now</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- USER CONFIGURATION ---
+    const CHANNEL_ID = '3308524'; // Replace with your Channel ID
+    const READ_API_KEY = 'MOUBPI7RB16IWHC6';   // Replace with your Read API Key
+    const MY_UPI_ID = 'vickyvigneshvicky327-1@okhdfcbank';     // Replace with your real UPI ID
+    // -------------------------
+
+    function updateDashboard() {
+        const url = `https://api.thingspeak.com/channels/${CHANNEL_ID}/feeds.json?api_key=${READ_API_KEY}&results=1`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.feeds.length > 0) {
+                    const feed = data.feeds[0];
+                    
+                    // Assign values and handle empty data
+                    document.getElementById('voltage').innerText = feed.field1 || '0.0';
+                    document.getElementById('current').innerText = feed.field2 || '0.0';
+                    document.getElementById('power').innerText = feed.field3 || '0.0';
+                    document.getElementById('energy').innerText = feed.field4 || '0.0';
+                    document.getElementById('bill').innerText = feed.field5 || '0.00';
+
+                    // Update timestamp
+                    const now = new Date();
+                    document.getElementById('last-sync').innerText = now.toLocaleTimeString();
+                }
+            })
+            .catch(err => {
+                console.error("Error fetching ThingSpeak data:", err);
+            });
+    }
+
+    // Refresh every 15 seconds (ThingSpeak limit)
+    setInterval(updateDashboard, 15000);
+    updateDashboard(); // Initial load
+
+    function processPayment() {
+        const amount = document.getElementById('bill').innerText;
+        const upiName = "Electricity Bill Payment";
+
+        if(parseFloat(amount) <= 0) {
+            alert("No outstanding amount to pay!");
+            return;
+        }
+
+        // Standard UPI Deep-linking URL
+        const upiUrl = `upi://pay?pa=${MY_UPI_ID}&pn=${encodeURIComponent(upiName)}&am=${amount}&cu=INR`;
+
+        // Attempt to open the payment app
+        window.location.href = upiUrl;
+    }
+</script>
+
+</body>
+</html>
